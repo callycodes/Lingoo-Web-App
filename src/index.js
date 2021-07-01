@@ -6,7 +6,7 @@ function Square(props) {
 
     return (
       <button onClick={props.onClick} 
-      className="square">
+      className={"square " + (props.highlight ? 'highlight' : '')}>
         {props.value}
       </button>
     );
@@ -15,8 +15,8 @@ function Square(props) {
 class Board extends React.Component {
 
 
-  renderSquare(i) {
-    return <Square value={this.props.squares[i]}
+  renderSquare(i, highlight) {
+    return <Square highlight={highlight} value={this.props.squares[i]}
     onClick={() => this.props.onClick(i)} />;
   }
 
@@ -28,7 +28,12 @@ class Board extends React.Component {
       const row = Array(3).fill(null);
       for (var i = 0; i < 3; i++) {
         var pos = (r * 3) + i;
-        row[i] = this.renderSquare(pos);
+
+        if (this.props.winning && (this.props.winning[0] === pos || this.props.winning[1] === pos || this.props.winning[2] === pos)) {
+          row[i] = this.renderSquare(pos, true);
+        } else {
+          row[i] = this.renderSquare(pos, false);
+        }
       }
       
       grid[r] = <div className="board-row">{row}</div>;
@@ -60,7 +65,7 @@ class Game extends React.Component {
   render() {
 
     const history = this.state.history;
-    const current = history[this.state.stepNumber];
+    var current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
     var moves = history.map((step, move) => {
@@ -82,7 +87,12 @@ class Game extends React.Component {
     }
 
     let status;
+    current.winning = Array(3).fill(null);
+
     if (winner) {
+      const tiles = getWinningTiles(current.squares)
+      current.winning = tiles;
+
       status = 'Winner: ' + winner;
     } else {
       status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
@@ -92,7 +102,7 @@ class Game extends React.Component {
 
       <div className="game">
         <div className="game-board">
-          <Board squares={current.squares}
+          <Board winning={current.winning} squares={current.squares}
           onClick={(i) => {this.handleClick(i)}}/>
         </div>
         <div className="game-info">
@@ -173,6 +183,25 @@ function calculateWinner(squares) {
   return null;
 }
 
+function getWinningTiles(squares) {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    const [a, b, c] = lines[i];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return lines[i];
+    }
+  }
+}
+
 function convertToPos(i) {
   var col, row = 0;
   if (i % 3 === 0 || i === 0) {
@@ -194,6 +223,7 @@ function convertToPos(i) {
     }
   } else {
     col = 3;
+    // eslint-disable-next-line default-case
     switch (i) {
       case 2:
         row = 1;
